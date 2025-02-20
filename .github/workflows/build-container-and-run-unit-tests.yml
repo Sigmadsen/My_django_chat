@@ -29,13 +29,6 @@ jobs:
         push: false
         tags: fitapp:latest
 
-    - name: Report Docker image size
-      run: |
-        IMAGE_ID=$(docker images -q fitapp:latest)
-        IMAGE_SIZE=$(docker image inspect $IMAGE_ID --format='{{.Size}}')
-        echo "Docker image size: $IMAGE_SIZE bytes"
-        echo "IMAGE_SIZE=$IMAGE_SIZE" >> $GITHUB_ENV
-
     - name: Copy and load .env.example file
       run: |
         cp .env.example .env
