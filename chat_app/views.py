@@ -9,5 +9,5 @@ class Home(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        content = {'message': 'Test JWTAuthentication access!'}
+        content = {"message": "Test JWTAuthentication access!"}
         return Response(content)
