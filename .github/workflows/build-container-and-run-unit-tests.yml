@@ -24,7 +24,7 @@ jobs:
         context: .
         load: true
         push: false
-        tags: My_django_chat:latest
+        tags: my_django_chat:latest
 
     - name: Copy and load .env.example file
       run: |
