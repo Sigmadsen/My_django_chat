@@ -45,10 +45,15 @@ INSTALLED_APPS = [
 ]
 
 REST_FRAMEWORK = {
+    # 2 next settings automatically applies to all views unless explicitly overridden.
+    # No need to add "permission_classes = [IsAuthenticated]" to views explicitly
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    # No need to add "authentication_classes = [JWTAuthentication]" to views explicitly.
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": 10,
 }
 
 SIMPLE_JWT = {
@@ -56,7 +61,7 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_LIFETIME": timedelta(days=30),
     "SLIDING_TOKEN_REFRESH_LIFETIME_LATE_USER": timedelta(days=1),
     "SLIDING_TOKEN_LIFETIME_LATE_USER": timedelta(days=30),
-    "AUTH_TOKEN_CLASSES": ('rest_framework_simplejwt.tokens.SlidingToken',),
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.SlidingToken",),
 }
 
 MIDDLEWARE = [
