@@ -32,7 +32,7 @@ jobs:
 
     - name: Run Docker container
       run: |
-        docker compose up -d
+        docker compose up -d --wait
 
     - name: Run tests in docker container
       run: |
