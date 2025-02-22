@@ -38,13 +38,13 @@ class ThreadMessageViewSet(viewsets.ModelViewSet):
     serializer_class = ThreadMessageSerializer
 
     def get_queryset(self):
-        thread_id = self.kwargs.get("pk")
+        thread_id = self.kwargs.get("thread_pk")
         return Message.objects.filter(
             thread_id=thread_id, thread__participants=self.request.user
         )
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context["thread_id"] = self.kwargs.get("pk")
+        context["thread_id"] = self.kwargs.get("thread_pk")
         context["sender"] = self.request.user
         return context

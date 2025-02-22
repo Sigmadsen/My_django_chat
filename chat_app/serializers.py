@@ -1,6 +1,5 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
-from django.db.models import TextField
 from rest_framework import serializers
 
 from chat_app.models import Thread, Message
@@ -55,11 +54,24 @@ class ThreadSerializer(serializers.ModelSerializer):
 
 class ThreadMessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
-    text = TextField(blank=False, null=False)
+    text = serializers.CharField()
+    created = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Message
         fields = ["id", "sender", "text", "is_read", "created"]
+
+    def validate_is_read(self, value):
+        sender = self.context["sender"]
+        if self.instance and self.instance.sender == sender and value is True:
+            raise serializers.ValidationError(
+                "You cannot mark your own message as read."
+            )
+        if self.instance and value is False:
+            raise serializers.ValidationError(
+                "Mark a message as not read are not allowed."
+            )
+        return value
 
     def validate(self, data):
         thread_id = self.context.get("thread_id")
@@ -77,6 +89,9 @@ class ThreadMessageSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        # Always set is_read=False on creation to prevent set up is_read=False on message creation
+        # and allow to set is_read=True with PATCH request
+        validated_data["is_read"] = False
         thread_id = self.context.get("thread_id")
         thread = Thread.objects.filter(id=thread_id).first()
         sender = self.context.get("sender")

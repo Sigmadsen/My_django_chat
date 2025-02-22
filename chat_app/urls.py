@@ -21,8 +21,13 @@ urlpatterns = [
     ),
     # TODO: Message endpoints
     path(
-        "api/threads/<int:pk>/messages/",
+        "api/threads/<int:thread_pk>/messages/",
         ThreadMessageViewSet.as_view({"post": "create", "get": "list"}),
+        name="messages",
+    ),
+    path(
+        "api/threads/<int:thread_pk>/messages/<int:pk>/",
+        ThreadMessageViewSet.as_view({"patch": "partial_update"}),
         name="messages",
     ),
 ]

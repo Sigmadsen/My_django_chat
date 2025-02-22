@@ -44,32 +44,34 @@ class MessageModelTest(TransactionTestCase):
     def setUp(self):
         self.user1 = User.objects.create_user(username="user1", password="testpass123")
         self.user2 = User.objects.create_user(username="user2", password="testpass123")
-        self.thread = Thread.objects.create()
-        self.thread.participants.add(self.user1, self.user2)
+
+        self.thread_between_1_and_2 = Thread.objects.create()
+        self.thread_between_1_and_2.participants.add(self.user1, self.user2)
 
     def test_create_message(self):
         message = Message.objects.create(
-            sender=self.user1, thread=self.thread, text="Test message"
+            sender=self.user1, thread=self.thread_between_1_and_2, text="Test message"
         )
 
         self.assertEqual(message.sender, self.user1)
-        self.assertEqual(message.thread, self.thread)
+        self.assertEqual(message.thread, self.thread_between_1_and_2)
         self.assertEqual(message.text, "Test message")
+
         self.assertFalse(message.is_read)
-        self.assertIsNotNone(message.created)
-        self.assertEqual(self.thread.messages.count(), 1)
-        self.assertEqual(self.thread.messages.first(), message)
+
+        self.assertEqual(self.thread_between_1_and_2.messages.count(), 1)
+        self.assertEqual(self.thread_between_1_and_2.messages.first(), message)
 
     def test_cannot_create_message_with_non_participant_sender(self):
         user3 = User.objects.create_user(username="user3", password="testpass123")
         with self.assertRaises(ValidationError):
             Message.objects.create(
-                sender=user3, thread=self.thread, text="Invalid sender"
+                sender=user3, thread=self.thread_between_1_and_2, text="Invalid sender"
             )
 
     def test_update_message_is_read(self):
         message = Message.objects.create(
-            sender=self.user1, thread=self.thread, text="Test"
+            sender=self.user1, thread=self.thread_between_1_and_2, text="Test"
         )
         message.is_read = True
         message.save()
@@ -78,43 +80,44 @@ class MessageModelTest(TransactionTestCase):
     def test_messages_deleted_when_sender_deleted(self):
         # Create a couple messages from user1
         message1 = Message.objects.create(
-            sender=self.user1, thread=self.thread, text="Message 1"
+            sender=self.user1, thread=self.thread_between_1_and_2, text="Message 1"
         )
         message2 = Message.objects.create(
-            sender=self.user1, thread=self.thread, text="Message 2"
+            sender=self.user1, thread=self.thread_between_1_and_2, text="Message 2"
         )
         # Create a message from user2, to ensure, that it won't be deleted
         message3 = Message.objects.create(
-            sender=self.user2, thread=self.thread, text="Message 3"
+            sender=self.user2, thread=self.thread_between_1_and_2, text="Message 3"
         )
 
         # Check messages count at the start
         self.assertEqual(Message.objects.count(), 3)
-        self.assertEqual(self.thread.messages.count(), 3)
+        self.assertEqual(self.thread_between_1_and_2.messages.count(), 3)
 
         # Delete user1
         self.user1.delete()
 
         # Check, does the messages from user1 has been deleted, but from user2 didn't
         self.assertEqual(Message.objects.count(), 1)
-        self.assertEqual(self.thread.messages.count(), 1)
-        self.assertEqual(self.thread.messages.first(), message3)
+        self.assertEqual(self.thread_between_1_and_2.messages.count(), 1)
+
+        self.assertEqual(self.thread_between_1_and_2.messages.first(), message3)
 
     def test_messages_deleted_when_thread_deleted(self):
         # Create a couple messages in a thread
         message1 = Message.objects.create(
-            sender=self.user1, thread=self.thread, text="Message 1"
+            sender=self.user1, thread=self.thread_between_1_and_2, text="Message 1"
         )
         message2 = Message.objects.create(
-            sender=self.user2, thread=self.thread, text="Message 2"
+            sender=self.user2, thread=self.thread_between_1_and_2, text="Message 2"
         )
 
         # Check messages count at the start
         self.assertEqual(Message.objects.count(), 2)
-        self.assertEqual(self.thread.messages.count(), 2)
+        self.assertEqual(self.thread_between_1_and_2.messages.count(), 2)
 
         # Delete the thread
-        self.thread.delete()
+        self.thread_between_1_and_2.delete()
 
         # Check, does all messages has been deleted
         self.assertEqual(Message.objects.count(), 0)

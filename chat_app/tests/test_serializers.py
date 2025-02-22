@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.test import TransactionTestCase, RequestFactory
-from chat_app.models import Thread
+from chat_app.models import Thread, Message
 from chat_app.serializers import (
     UserSerializer,
     ThreadSerializer,
@@ -137,18 +137,25 @@ class ThreadMessageSerializerTest(TransactionTestCase):
         self.user2 = User.objects.create_user(username="user2", password="testpass123")
         self.user3 = User.objects.create_user(username="user3", password="testpass123")
 
-        self.thread = Thread.objects.create()
-        self.thread.participants.set([self.user1, self.user2])
+        self.thread_between_1_and_2 = Thread.objects.create()
+
+        self.thread_between_1_and_2.participants.set([self.user1, self.user2])
 
         self.valid_request_data = {"text": "Test message123123123"}
         self.no_field_request_data = {}
         self.empty_text_request_data = {"text": ""}
         self.none_text_request_data = {"text": None}
 
+        self.message = Message.objects.create(
+            text="Test message123123123",
+            sender=self.user1,
+            thread=self.thread_between_1_and_2,
+        )
+
     def test_create_valid_message(self):
         serializer = ThreadMessageSerializer(
             data=self.valid_request_data,
-            context={"sender": self.user1, "thread_id": self.thread.id},
+            context={"sender": self.user1, "thread_id": self.thread_between_1_and_2.id},
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
 
@@ -156,36 +163,36 @@ class ThreadMessageSerializerTest(TransactionTestCase):
 
         self.assertEqual(message.text, self.valid_request_data["text"])
         self.assertEqual(message.sender, self.user1)
-        self.assertEqual(message.thread, self.thread)
+        self.assertEqual(message.thread, self.thread_between_1_and_2)
 
-    def test_create_message_no_fields(self):
+    def test_create_message_with_no_fields(self):
         serializer = ThreadMessageSerializer(
             data=self.no_field_request_data,
-            context={"sender": self.user1, "thread_id": self.thread.id},
+            context={"sender": self.user1, "thread_id": self.thread_between_1_and_2.id},
         )
         self.assertFalse(serializer.is_valid())
         self.assertIn("text", serializer.errors)
         self.assertIn("This field is required.", str(serializer.errors["text"]))
 
-    def test_create_message_empty_text(self):
+    def test_create_message_with_empty_text(self):
         serializer = ThreadMessageSerializer(
             data=self.empty_text_request_data,
-            context={"sender": self.user1, "thread_id": self.thread.id},
+            context={"sender": self.user1, "thread_id": self.thread_between_1_and_2.id},
         )
         self.assertFalse(serializer.is_valid())
         self.assertIn("text", serializer.errors)
         self.assertIn("This field may not be blank.", str(serializer.errors["text"]))
 
-    def test_create_message_null_text(self):
+    def test_create_message_with_null_text(self):
         serializer = ThreadMessageSerializer(
             data=self.none_text_request_data,
-            context={"sender": self.user1, "thread_id": self.thread.id},
+            context={"sender": self.user1, "thread_id": self.thread_between_1_and_2.id},
         )
         self.assertFalse(serializer.is_valid())
         self.assertIn("text", serializer.errors)
         self.assertIn("This field may not be null.", str(serializer.errors["text"]))
 
-    def test_create_message_non_existing_thread(self):
+    def test_create_message_with_non_existing_thread(self):
         serializer = ThreadMessageSerializer(
             data=self.valid_request_data,
             context={"sender": self.user1, "thread_id": 100},
@@ -196,14 +203,65 @@ class ThreadMessageSerializerTest(TransactionTestCase):
             "Thread with id 100 does not exist.", str(serializer.errors["detail"])
         )
 
-    def test_create_message_not_your_thread(self):
+    def test_create_message_in_not_your_thread(self):
         serializer = ThreadMessageSerializer(
             data=self.valid_request_data,
-            context={"sender": self.user3, "thread_id": self.thread.id},
+            context={"sender": self.user3, "thread_id": self.thread_between_1_and_2.id},
         )
         self.assertFalse(serializer.is_valid())
         self.assertIn("detail", serializer.errors)
         self.assertIn(
             "Sender must be a participant of the thread.",
             str(serializer.errors["detail"]),
+        )
+
+    def test_mark_message_as_read(self):
+        serializer = ThreadMessageSerializer(
+            instance=self.message,
+            data={"is_read": True},
+            context={"sender": self.user2, "thread_id": self.thread_between_1_and_2.id},
+            partial=True,
+        )
+        self.assertTrue(serializer.is_valid())
+        serializer.save()
+        self.message.refresh_from_db()
+        self.assertTrue(self.message.is_read)
+
+    def test_mark_own_message_as_read(self):
+        serializer = ThreadMessageSerializer(
+            instance=self.message,
+            data={"is_read": True},
+            context={"sender": self.user1, "thread_id": self.thread_between_1_and_2.id},
+            partial=True,
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("is_read", serializer.errors)
+        self.assertIn(
+            "You cannot mark your own message as read.", serializer.errors["is_read"]
+        )
+
+    def test_mark_message_as_not_read(self):
+        serializer = ThreadMessageSerializer(
+            instance=self.message,
+            data={"is_read": False},
+            context={"sender": self.user2, "thread_id": self.thread_between_1_and_2.id},
+            partial=True,
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("is_read", serializer.errors)
+        self.assertIn(
+            "Mark a message as not read are not allowed.", serializer.errors["is_read"]
+        )
+
+    def test_mark_message_of_non_thread_participant_as_read(self):
+        serializer = ThreadMessageSerializer(
+            instance=self.message,
+            data={"is_read": True},
+            context={"sender": self.user3, "thread_id": self.thread_between_1_and_2.id},
+            partial=True,
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("detail", serializer.errors)
+        self.assertIn(
+            "Sender must be a participant of the thread.", serializer.errors["detail"]
         )

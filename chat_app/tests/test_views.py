@@ -131,12 +131,15 @@ class ThreadMessageViewSetTest(TransactionTestCase):
         self.user2 = User.objects.create_user(username="user2", password="testpass123")
         self.user3 = User.objects.create_user(username="user3", password="testpass123")
 
-        self.thread = Thread.objects.create()
-        self.thread.participants.set([self.user1, self.user2])
+        self.thread_between_1_and_2 = Thread.objects.create()
+        self.thread_between_1_and_2.participants.set([self.user1, self.user2])
+
+        self.thread_between_2_and_3 = Thread.objects.create()
+        self.thread_between_2_and_3.participants.set([self.user2, self.user3])
 
         self.client.force_authenticate(user=self.user1)
 
-        self.messages_url = reverse("messages", args=[self.thread.id])
+        self.messages_url = reverse("messages", args=[self.thread_between_1_and_2.id])
 
         self.valid_request_data = {"text": "Test message123123123"}
         self.no_field_request_data = {}
@@ -195,11 +198,10 @@ class ThreadMessageViewSetTest(TransactionTestCase):
         self.assertIn("detail", response.data)
         self.assertIn("Thread with id 100 does not exist.", response.data["detail"])
 
-    def test_send_thread_message_not_your_thread(self):
-        another_thread = Thread.objects.create()
-        another_thread.participants.set([self.user2, self.user3])
-
-        another_thread_messages_url = reverse("messages", args=[another_thread.id])
+    def test_create_thread_message_not_in_your_thread(self):
+        another_thread_messages_url = reverse(
+            "messages", args=[self.thread_between_2_and_3.id]
+        )
 
         response = self.client.post(
             another_thread_messages_url, self.valid_request_data, format="json"
@@ -210,7 +212,7 @@ class ThreadMessageViewSetTest(TransactionTestCase):
             "Sender must be a participant of the thread.", response.data["detail"][0]
         )
 
-    def test_list_thread_messages_created(self):
+    def test_get_created_thread_messages(self):
         self.client.post(self.messages_url, self.valid_request_data, format="json")
         self.client.post(self.messages_url, self.valid_request_data, format="json")
 
@@ -218,3 +220,77 @@ class ThreadMessageViewSetTest(TransactionTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(Message.objects.count(), 2)
+        self.assertEqual(len(response.data["results"]), 2)
+        for message in response.data["results"]:
+            self.assertEqual(message["text"], self.valid_request_data["text"])
+            self.assertEqual(message["sender"]["id"], self.user1.id)
+            self.assertFalse(message["is_read"])
+
+        self.assertNotEqual(
+            response.data["results"][0]["id"], response.data["results"][1]["id"]
+        )
+
+    def test_mark_thread_message_as_read(self):
+        message = Message.objects.create(
+            text="Test message123123123",
+            sender=self.user2,
+            thread=self.thread_between_1_and_2,
+        )
+        patch_url = reverse(
+            "messages", args=[self.thread_between_1_and_2.pk, message.pk]
+        )
+        response = self.client.patch(patch_url, {"is_read": True})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        message.refresh_from_db()
+        self.assertTrue(message.is_read)
+
+    def test_mark_own_thread_message_as_read(self):
+        message = Message.objects.create(
+            text="Test message123123123",
+            sender=self.user1,
+            thread=self.thread_between_1_and_2,
+        )
+        patch_url = reverse(
+            "messages", args=[self.thread_between_1_and_2.pk, message.pk]
+        )
+        response = self.client.patch(patch_url, {"is_read": True})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("is_read", response.data)
+        self.assertIn(
+            "You cannot mark your own message as read.", response.data["is_read"]
+        )
+
+    def test_mark_thread_message_as_not_read(self):
+        message = Message.objects.create(
+            text="Test message123123123",
+            sender=self.user2,
+            thread=self.thread_between_1_and_2,
+        )
+        patch_url = reverse(
+            "messages", args=[self.thread_between_1_and_2.pk, message.pk]
+        )
+        response = self.client.patch(patch_url, {"is_read": False})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("is_read", response.data)
+        self.assertIn(
+            "Mark a message as not read are not allowed.", response.data["is_read"]
+        )
+
+    def test_mark_thread_message_for_non_thread_participant_as_read(self):
+        message = Message.objects.create(
+            text="Test message123123123",
+            sender=self.user3,
+            thread=self.thread_between_2_and_3,
+        )
+        patch_url = reverse(
+            "messages", args=[self.thread_between_2_and_3.pk, message.pk]
+        )
+        response = self.client.patch(patch_url, {"is_read": True})
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn("detail", response.data)
+        self.assertEqual("No Message matches the given query.", response.data["detail"])
