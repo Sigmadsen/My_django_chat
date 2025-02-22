@@ -32,15 +32,3 @@ class ThreadViewSet(viewsets.ModelViewSet):
             else status.HTTP_201_CREATED
         )
         return Response(serializer.data, status=status_code, headers=headers)
-
-    def destroy(self, request, *args, **kwargs):
-        thread = self.get_object()
-
-        if request.user not in thread.participants.all():
-            return Response(
-                {"error": "You are not a participant of this thread."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        thread.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
