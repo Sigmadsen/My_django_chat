@@ -14,22 +14,23 @@ class ThreadViewSetTest(TransactionTestCase):
         self.user3 = User.objects.create_user(username="user3", password="testpass123")
 
         self.client.force_authenticate(user=self.user1)
-        self.url = reverse("create_thread")
+        self.create_url = reverse("create_thread")
 
     def test_create_thread_unauthorized(self):
         self.client.force_authenticate(user=None)
         response = self.client.post(
-            self.url, {"username": self.user2.username}, format="json"
+            self.create_url, {"username": self.user2.username}, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(Thread.objects.count(), 0)
         self.assertEqual(
-            response.data["detail"], "Authentication credentials were not provided."
+            "Authentication credentials were not provided.",
+            response.data["detail"],
         )
 
     def test_create_thread_ok(self):
         response = self.client.post(
-            self.url, {"username": self.user2.username}, format="json"
+            self.create_url, {"username": self.user2.username}, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Thread.objects.count(), 1)
@@ -38,7 +39,7 @@ class ThreadViewSetTest(TransactionTestCase):
         thread = Thread.objects.create()
         thread.participants.set([self.user1, self.user2])
         response = self.client.post(
-            self.url, {"username": self.user2.username}, format="json"
+            self.create_url, {"username": self.user2.username}, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(Thread.objects.count(), 1)
@@ -46,7 +47,7 @@ class ThreadViewSetTest(TransactionTestCase):
 
     def test_create_thread_participants(self):
         response = self.client.post(
-            self.url, {"username": self.user2.username}, format="json"
+            self.create_url, {"username": self.user2.username}, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         thread = Thread.objects.first()
@@ -56,25 +57,52 @@ class ThreadViewSetTest(TransactionTestCase):
         self.assertIn(self.user2, participants)
 
     def test_create_thread_invalid_data(self):
-        response = self.client.post(self.url, {}, format="json")
+        response = self.client.post(self.create_url, {}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("username", response.data)
-        self.assertIn("This field is required.", response.data["username"][0])
+        self.assertEqual("This field is required.", response.data["username"][0])
 
     def test_create_thread_with_non_existent_user(self):
         response = self.client.post(
-            self.url, {"username": "non_existent"}, format="json"
+            self.create_url, {"username": "non_existent"}, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn(
+        self.assertEqual(
             "User with username 'non_existent' not found.", response.data["username"][0]
         )
 
     def test_create_thread_with_yourself(self):
         response = self.client.post(
-            self.url, {"username": self.user1.username}, format="json"
+            self.create_url, {"username": self.user1.username}, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn(
+        self.assertEqual(
             "Cannot create a thread with yourself.", response.data["username"][0]
         )
+
+    def test_delete_thread_success(self):
+        thread = Thread.objects.create()
+        thread.participants.set([self.user1, self.user2])
+        url = reverse("delete_thread", args=[thread.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Thread.objects.filter(id=thread.id).exists())
+
+    def thread_does_not_exist(self):
+        url = reverse("delete_thread", args=[1])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(
+            "No Thread matches the given query.",
+            response.data["detail"],
+        )
+
+    def test_delete_thread_not_participant(self):
+        thread = Thread.objects.create()
+        thread.participants.set([self.user2, self.user3])
+
+        url = reverse("delete_thread", args=[thread.id])
+        response = self.client.delete(url)
+        # We can't found other people's thread because have set up get_queryset() method with request.user
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual("No Thread matches the given query.", response.data["detail"])

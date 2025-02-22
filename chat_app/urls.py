@@ -11,5 +11,10 @@ urlpatterns = [
     path(
         "api/threads/", ThreadViewSet.as_view({"post": "create"}), name="create_thread"
     ),
+    path(
+        "api/threads/<int:pk>/",
+        ThreadViewSet.as_view({"delete": "destroy"}),
+        name="delete_thread",
+    ),
     # TODO: Message endpoints
 ]
