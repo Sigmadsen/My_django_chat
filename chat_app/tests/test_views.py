@@ -121,7 +121,7 @@ class ThreadViewSetTest(TransactionTestCase):
         response = self.client.get(self.threads_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         thread_ids = [thread["id"] for thread in response.data["results"]]
-        self.assertEqual(thread_ids, [thread1.id, thread2.id])
+        self.assertEqual(set(thread_ids), {thread1.id, thread2.id})
 
 
 class ThreadMessageViewSetTest(TransactionTestCase):

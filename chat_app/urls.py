@@ -1,13 +1,11 @@
 from django.urls import path
 
 from chat_app.views import (
-    Home,
     ThreadViewSet,
     ThreadMessageViewSet,
 )
 
 urlpatterns = [
-    path("", Home.as_view(), name="check_authorization"),
     path(
         "api/threads/",
         ThreadViewSet.as_view({"post": "create", "get": "list"}),

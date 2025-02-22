@@ -40,7 +40,11 @@ class ThreadSerializer(serializers.ModelSerializer):
         invited_user = validated_data["username"]
 
         # Searching for an existing thread
-        thread = Thread.objects.filter(participants__in=[my_user, invited_user]).first()
+        thread = (
+            Thread.objects.filter(participants=my_user)
+            .filter(participants=invited_user)
+            .first()
+        )
         if thread:
             # Flag to show that we need return 200 status code in ViewSet
             self._existing_thread = True

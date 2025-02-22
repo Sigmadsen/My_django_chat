@@ -10,6 +10,9 @@ class Thread(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        ordering = ["-created"]
+
 
 # Need this signal to validate count of participants because clean() not works
 # Description: The clean() method is called before saving, and participants is a ManyToManyField.

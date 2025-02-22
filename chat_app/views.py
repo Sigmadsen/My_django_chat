@@ -1,16 +1,9 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from chat_app.models import Thread, Message
 from chat_app.serializers import ThreadSerializer, ThreadMessageSerializer
-
-
-class Home(APIView):
-    def get(self, request):
-        content = {"message": "Test JWTAuthentication access!"}
-        return Response(content)
 
 
 class ThreadViewSet(viewsets.ModelViewSet):
