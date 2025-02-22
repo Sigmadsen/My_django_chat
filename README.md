@@ -2,16 +2,18 @@
 
 ## How to Run
 
-1. **Build the Docker image:**
+1. **Rename dump file `db_dump.sqlite3` to `db.sqlite3` to use test data:**
+
+2. **Build the Docker image:**
    ```sh
    docker compose build
    ```
-2. **Start the containers:**
+3. **Start the containers:**
    ```sh
    docker compose up -d
    ```
-3. **Rename dump file `db_dump.sqlite3` to `db.sqlite3` to use test data:**
-   
+
+
 ## Steps to Test
 1. **Create admin token**![Create admin token](./docs/screenshots/step_1_create_admin_token.png)
    - Send a `POST` request to `http://localhost:8000/api/token/` with username:admin and password:admin and save the token
