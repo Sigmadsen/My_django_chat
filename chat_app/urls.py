@@ -1,11 +1,14 @@
 from django.urls import path
+from rest_framework_simplejwt.views import TokenObtainSlidingView
 
 from chat_app.views import (
     ThreadViewSet,
     ThreadMessageViewSet,
 )
 
+
 urlpatterns = [
+    path("api/token/", TokenObtainSlidingView.as_view(), name="token_obtain"),
     path(
         "api/threads/",
         ThreadViewSet.as_view({"post": "create", "get": "list"}),

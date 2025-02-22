@@ -15,12 +15,14 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from rest_framework_simplejwt.views import TokenObtainSlidingView
 from django.contrib import admin
 from django.urls import path, include
 
+from chat_app.views import custom_404
+
+handler404 = custom_404
+
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/token/", TokenObtainSlidingView.as_view(), name="token_obtain"),
     path("", include("chat_app.urls")),
 ]

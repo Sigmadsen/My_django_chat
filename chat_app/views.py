@@ -1,9 +1,21 @@
+from django.http import JsonResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from chat_app.models import Thread, Message
 from chat_app.serializers import ThreadSerializer, ThreadMessageSerializer
+
+
+def custom_404(request, exception=None):
+    return JsonResponse(
+        {
+            "error": "Not Found",
+            "status_code": 404,
+            "details": "The requested resource was not found on this server.",
+        },
+        status=404,
+    )
 
 
 class ThreadViewSet(viewsets.ModelViewSet):
