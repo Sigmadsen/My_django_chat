@@ -2,8 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from chat_app.models import Thread
-from chat_app.serializers import ThreadSerializer
+from chat_app.models import Thread, Message
+from chat_app.serializers import ThreadSerializer, ThreadMessageSerializer
 
 
 class Home(APIView):
@@ -32,3 +32,19 @@ class ThreadViewSet(viewsets.ModelViewSet):
             else status.HTTP_201_CREATED
         )
         return Response(serializer.data, status=status_code, headers=headers)
+
+
+class ThreadMessageViewSet(viewsets.ModelViewSet):
+    serializer_class = ThreadMessageSerializer
+
+    def get_queryset(self):
+        thread_id = self.kwargs.get("pk")
+        return Message.objects.filter(
+            thread_id=thread_id, thread__participants=self.request.user
+        )
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["thread_id"] = self.kwargs.get("pk")
+        context["sender"] = self.request.user
+        return context

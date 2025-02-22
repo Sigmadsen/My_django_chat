@@ -3,7 +3,7 @@ from django.test import TransactionTestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
-from chat_app.models import Thread
+from chat_app.models import Thread, Message
 
 
 class ThreadViewSetTest(TransactionTestCase):
@@ -16,7 +16,7 @@ class ThreadViewSetTest(TransactionTestCase):
         self.client.force_authenticate(user=self.user1)
         self.threads_url = reverse("threads")
 
-    def test_create_thread_unauthorized(self):
+    def test_create_thread_status_unauthorized(self):
         self.client.force_authenticate(user=None)
         response = self.client.post(
             self.threads_url, {"username": self.user2.username}, format="json"
@@ -28,7 +28,7 @@ class ThreadViewSetTest(TransactionTestCase):
             response.data["detail"],
         )
 
-    def test_create_thread_ok(self):
+    def test_create_thread_status_created(self):
         response = self.client.post(
             self.threads_url, {"username": self.user2.username}, format="json"
         )
@@ -122,3 +122,90 @@ class ThreadViewSetTest(TransactionTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         thread_ids = [thread["id"] for thread in response.data["results"]]
         self.assertEqual(thread_ids, [thread1.id, thread2.id])
+
+
+class ThreadMessageViewSetTest(TransactionTestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user1 = User.objects.create_user(username="user1", password="testpass123")
+        self.user2 = User.objects.create_user(username="user2", password="testpass123")
+        self.user3 = User.objects.create_user(username="user3", password="testpass123")
+
+        self.thread = Thread.objects.create()
+        self.thread.participants.set([self.user1, self.user2])
+
+        self.client.force_authenticate(user=self.user1)
+
+        self.messages_url = reverse("messages", args=[self.thread.id])
+
+        self.valid_request_data = {"text": "Test message123123123"}
+        self.no_field_request_data = {}
+        self.empty_text_request_data = {"text": ""}
+        self.none_text_request_data = {"text": None}
+
+    def test_create_thread_message_status_unauthorized(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            self.messages_url, self.valid_request_data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(Message.objects.count(), 0)
+        self.assertEqual(
+            "Authentication credentials were not provided.",
+            response.data["detail"],
+        )
+
+    def test_create_thread_message_status_created(self):
+        response = self.client.post(
+            self.messages_url, self.valid_request_data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Message.objects.count(), 1)
+
+    def test_create_thread_message_no_field_data(self):
+        response = self.client.post(
+            self.messages_url, self.no_field_request_data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("text", response.data)
+        self.assertEqual("This field is required.", response.data["text"][0])
+
+    def test_create_thread_message_empty_text_data(self):
+        response = self.client.post(
+            self.messages_url, self.empty_text_request_data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("text", response.data)
+        self.assertEqual("This field may not be blank.", response.data["text"][0])
+
+    def test_create_thread_message_none_text_data(self):
+        response = self.client.post(
+            self.messages_url, self.none_text_request_data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("text", response.data)
+        self.assertEqual("This field may not be null.", response.data["text"][0])
+
+    def test_create_thread_message_thread_does_not_exits(self):
+        non_existent_messages_url = reverse("messages", args=[100])
+        response = self.client.post(
+            non_existent_messages_url, self.valid_request_data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("detail", response.data)
+        self.assertIn("Thread with id 100 does not exist.", response.data["detail"])
+
+    def test_send_thread_message_not_your_thread(self):
+        another_thread = Thread.objects.create()
+        another_thread.participants.set([self.user2, self.user3])
+
+        another_thread_messages_url = reverse("messages", args=[another_thread.id])
+
+        response = self.client.post(
+            another_thread_messages_url, self.valid_request_data, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("detail", response.data)
+        self.assertEqual(
+            "Sender must be a participant of the thread.", response.data["detail"][0]
+        )

@@ -3,6 +3,7 @@ from django.urls import path
 from chat_app.views import (
     Home,
     ThreadViewSet,
+    ThreadMessageViewSet,
 )
 
 urlpatterns = [
@@ -19,4 +20,9 @@ urlpatterns = [
         name="delete_thread",
     ),
     # TODO: Message endpoints
+    path(
+        "api/threads/<int:pk>/messages/",
+        ThreadMessageViewSet.as_view({"post": "create"}),
+        name="messages",
+    ),
 ]
