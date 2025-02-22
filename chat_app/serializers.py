@@ -55,12 +55,11 @@ class ThreadSerializer(serializers.ModelSerializer):
 
 class ThreadMessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
-    thread = ThreadSerializer(read_only=True)
     text = TextField(blank=False, null=False)
 
     class Meta:
         model = Message
-        fields = ["id", "sender", "text", "is_read", "thread", "created"]
+        fields = ["id", "sender", "text", "is_read", "created"]
 
     def validate(self, data):
         thread_id = self.context.get("thread_id")

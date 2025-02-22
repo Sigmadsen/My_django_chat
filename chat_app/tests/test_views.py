@@ -209,3 +209,12 @@ class ThreadMessageViewSetTest(TransactionTestCase):
         self.assertEqual(
             "Sender must be a participant of the thread.", response.data["detail"][0]
         )
+
+    def test_list_thread_messages_created(self):
+        self.client.post(self.messages_url, self.valid_request_data, format="json")
+        self.client.post(self.messages_url, self.valid_request_data, format="json")
+
+        response = self.client.get(self.messages_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Message.objects.count(), 2)
