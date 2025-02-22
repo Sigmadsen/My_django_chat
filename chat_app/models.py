@@ -29,6 +29,9 @@ class Message(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
+    class Meta:
+        ordering = ["-created"]
+
     def clean(self):
         if self.sender not in self.thread.participants.all():
             raise ValidationError("Sender must be a participant of the thread.")

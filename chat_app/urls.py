@@ -8,7 +8,6 @@ from chat_app.views import (
 
 urlpatterns = [
     path("", Home.as_view(), name="check_authorization"),
-    # TODO: Thread endpoints
     path(
         "api/threads/",
         ThreadViewSet.as_view({"post": "create", "get": "list"}),
@@ -19,7 +18,6 @@ urlpatterns = [
         ThreadViewSet.as_view({"delete": "destroy"}),
         name="delete_thread",
     ),
-    # TODO: Message endpoints
     path(
         "api/threads/<int:thread_pk>/messages/",
         ThreadMessageViewSet.as_view({"post": "create", "get": "list"}),
