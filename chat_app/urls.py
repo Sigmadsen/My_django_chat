@@ -9,7 +9,9 @@ urlpatterns = [
     path("", Home.as_view(), name="check_authorization"),
     # TODO: Thread endpoints
     path(
-        "api/threads/", ThreadViewSet.as_view({"post": "create"}), name="create_thread"
+        "api/threads/",
+        ThreadViewSet.as_view({"post": "create", "get": "list"}),
+        name="threads",
     ),
     path(
         "api/threads/<int:pk>/",
