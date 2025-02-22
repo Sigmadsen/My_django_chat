@@ -30,4 +30,9 @@ urlpatterns = [
         ThreadMessageViewSet.as_view({"patch": "partial_update"}),
         name="messages",
     ),
+    path(
+        "api/threads/<int:thread_pk>/messages/unread_count/",
+        ThreadMessageViewSet.as_view({"get": "unread_count"}),
+        name="unread_count",
+    ),
 ]

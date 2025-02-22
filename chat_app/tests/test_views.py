@@ -294,3 +294,48 @@ class ThreadMessageViewSetTest(TransactionTestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn("detail", response.data)
         self.assertEqual("No Message matches the given query.", response.data["detail"])
+
+    def test_unread_count(self):
+        Message.objects.create(
+            text="Message 1",
+            sender=self.user2,
+            thread=self.thread_between_1_and_2,
+            is_read=False,
+        )
+        Message.objects.create(
+            text="Message 2",
+            sender=self.user2,
+            thread=self.thread_between_1_and_2,
+            is_read=False,
+        )
+
+        self.client.force_authenticate(user=self.user1)
+        url = reverse("unread_count", args=[self.thread_between_1_and_2.id])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["unread_count"], 2)
+
+    def test_unread_count_non_participant(self):
+        Message.objects.create(
+            text="Message 1",
+            sender=self.user2,
+            thread=self.thread_between_1_and_2,
+            is_read=False,
+        )
+        Message.objects.create(
+            text="Message 2",
+            sender=self.user2,
+            thread=self.thread_between_1_and_2,
+            is_read=False,
+        )
+
+        self.client.force_authenticate(user=self.user3)
+        url = reverse("unread_count", args=[self.thread_between_1_and_2.id])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            "You are not a participant of this thread or the thread does not exist.",
+            response.data["detail"],
+        )

@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
@@ -48,3 +49,28 @@ class ThreadMessageViewSet(viewsets.ModelViewSet):
         context["thread_id"] = self.kwargs.get("thread_pk")
         context["sender"] = self.request.user
         return context
+
+    @action(detail=True, methods=["get"])
+    def unread_count(self, request, thread_pk=None):
+        user = request.user
+
+        try:
+            thread = Thread.objects.get(id=thread_pk, participants=user)
+        except Thread.DoesNotExist:
+            return Response(
+                {
+                    "detail": "You are not a participant of this thread or the thread does not exist."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        unread_count = (
+            Message.objects.filter(
+                thread_id=thread_pk,
+                is_read=False,
+            )
+            .exclude(sender=user)
+            .count()
+        )
+
+        return Response({"unread_count": unread_count}, status=status.HTTP_200_OK)
