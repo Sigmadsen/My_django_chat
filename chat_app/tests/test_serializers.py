@@ -153,9 +153,14 @@ class ThreadMessageSerializerTest(TransactionTestCase):
         )
 
     def test_create_valid_message(self):
+        request = self.factory.post(
+            f"/api/threads/{self.thread_between_1_and_2.id}/messages"
+        )
+        request.user = self.user1
+
         serializer = ThreadMessageSerializer(
             data=self.valid_request_data,
-            context={"sender": self.user1, "thread_id": self.thread_between_1_and_2.id},
+            context={"request": request, "thread_id": self.thread_between_1_and_2.id},
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
 
@@ -166,36 +171,54 @@ class ThreadMessageSerializerTest(TransactionTestCase):
         self.assertEqual(message.thread, self.thread_between_1_and_2)
 
     def test_create_message_with_no_fields(self):
+        request = self.factory.post(
+            f"/api/threads/{self.thread_between_1_and_2.id}/messages"
+        )
+        request.user = self.user1
+
         serializer = ThreadMessageSerializer(
             data=self.no_field_request_data,
-            context={"sender": self.user1, "thread_id": self.thread_between_1_and_2.id},
+            context={"request": request, "thread_id": self.thread_between_1_and_2.id},
         )
         self.assertFalse(serializer.is_valid())
         self.assertIn("text", serializer.errors)
         self.assertIn("This field is required.", str(serializer.errors["text"]))
 
     def test_create_message_with_empty_text(self):
+        request = self.factory.post(
+            f"/api/threads/{self.thread_between_1_and_2.id}/messages"
+        )
+        request.user = self.user1
+
         serializer = ThreadMessageSerializer(
             data=self.empty_text_request_data,
-            context={"sender": self.user1, "thread_id": self.thread_between_1_and_2.id},
+            context={"request": request, "thread_id": self.thread_between_1_and_2.id},
         )
         self.assertFalse(serializer.is_valid())
         self.assertIn("text", serializer.errors)
         self.assertIn("This field may not be blank.", str(serializer.errors["text"]))
 
     def test_create_message_with_null_text(self):
+        request = self.factory.post(
+            f"/api/threads/{self.thread_between_1_and_2.id}/messages"
+        )
+        request.user = self.user1
+
         serializer = ThreadMessageSerializer(
             data=self.none_text_request_data,
-            context={"sender": self.user1, "thread_id": self.thread_between_1_and_2.id},
+            context={"request": request, "thread_id": self.thread_between_1_and_2.id},
         )
         self.assertFalse(serializer.is_valid())
         self.assertIn("text", serializer.errors)
         self.assertIn("This field may not be null.", str(serializer.errors["text"]))
 
     def test_create_message_with_non_existing_thread(self):
+        request = self.factory.post("/api/threads/100/messages")
+        request.user = self.user1
+
         serializer = ThreadMessageSerializer(
             data=self.valid_request_data,
-            context={"sender": self.user1, "thread_id": 100},
+            context={"request": request, "thread_id": 100},
         )
         self.assertFalse(serializer.is_valid())
         self.assertIn("detail", serializer.errors)
@@ -204,9 +227,14 @@ class ThreadMessageSerializerTest(TransactionTestCase):
         )
 
     def test_create_message_in_not_your_thread(self):
+        request = self.factory.post(
+            f"/api/threads/{self.thread_between_1_and_2.id}/messages"
+        )
+        request.user = self.user3
+
         serializer = ThreadMessageSerializer(
             data=self.valid_request_data,
-            context={"sender": self.user3, "thread_id": self.thread_between_1_and_2.id},
+            context={"request": request, "thread_id": self.thread_between_1_and_2.id},
         )
         self.assertFalse(serializer.is_valid())
         self.assertIn("detail", serializer.errors)
@@ -216,10 +244,15 @@ class ThreadMessageSerializerTest(TransactionTestCase):
         )
 
     def test_mark_message_as_read(self):
+        request = self.factory.patch(
+            f"/api/threads/{self.thread_between_1_and_2.id}/messages"
+        )
+        request.user = self.user2
+
         serializer = ThreadMessageSerializer(
             instance=self.message,
             data={"is_read": True},
-            context={"sender": self.user2, "thread_id": self.thread_between_1_and_2.id},
+            context={"request": request, "thread_id": self.thread_between_1_and_2.id},
             partial=True,
         )
         self.assertTrue(serializer.is_valid())
@@ -228,10 +261,15 @@ class ThreadMessageSerializerTest(TransactionTestCase):
         self.assertTrue(self.message.is_read)
 
     def test_mark_own_message_as_read(self):
+        request = self.factory.patch(
+            f"/api/threads/{self.thread_between_1_and_2.id}/messages"
+        )
+        request.user = self.user1
+
         serializer = ThreadMessageSerializer(
             instance=self.message,
             data={"is_read": True},
-            context={"sender": self.user1, "thread_id": self.thread_between_1_and_2.id},
+            context={"request": request, "thread_id": self.thread_between_1_and_2.id},
             partial=True,
         )
         self.assertFalse(serializer.is_valid())
@@ -241,10 +279,14 @@ class ThreadMessageSerializerTest(TransactionTestCase):
         )
 
     def test_mark_message_as_not_read(self):
+        request = self.factory.patch(
+            f"/api/threads/{self.thread_between_1_and_2.id}/messages"
+        )
+        request.user = self.user2
         serializer = ThreadMessageSerializer(
             instance=self.message,
             data={"is_read": False},
-            context={"sender": self.user2, "thread_id": self.thread_between_1_and_2.id},
+            context={"request": request, "thread_id": self.thread_between_1_and_2.id},
             partial=True,
         )
         self.assertFalse(serializer.is_valid())
@@ -254,10 +296,14 @@ class ThreadMessageSerializerTest(TransactionTestCase):
         )
 
     def test_mark_message_of_non_thread_participant_as_read(self):
+        request = self.factory.patch(
+            f"/api/threads/{self.thread_between_1_and_2.id}/messages"
+        )
+        request.user = self.user3
         serializer = ThreadMessageSerializer(
             instance=self.message,
             data={"is_read": True},
-            context={"sender": self.user3, "thread_id": self.thread_between_1_and_2.id},
+            context={"request": request, "thread_id": self.thread_between_1_and_2.id},
             partial=True,
         )
         self.assertFalse(serializer.is_valid())

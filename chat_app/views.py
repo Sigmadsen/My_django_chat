@@ -28,8 +28,7 @@ class ThreadViewSet(viewsets.ModelViewSet):
         # Override this method to return status code 200 instead of 201 in case the thread is existing
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        serializer.save()
+        self.perform_create(serializer)
 
         headers = self.get_success_headers(serializer.data)
         status_code = (
@@ -52,7 +51,6 @@ class ThreadMessageViewSet(viewsets.ModelViewSet):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context["thread_id"] = self.kwargs.get("thread_pk")
-        context["sender"] = self.request.user
         return context
 
     @action(detail=True, methods=["get"])

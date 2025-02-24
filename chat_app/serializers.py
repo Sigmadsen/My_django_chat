@@ -66,7 +66,7 @@ class ThreadMessageSerializer(serializers.ModelSerializer):
         fields = ["id", "sender", "text", "is_read", "created"]
 
     def validate_is_read(self, value):
-        sender = self.context["sender"]
+        sender = self.context["request"].user
         if self.instance and self.instance.sender == sender and value is True:
             raise serializers.ValidationError(
                 "You cannot mark your own message as read."
@@ -85,7 +85,7 @@ class ThreadMessageSerializer(serializers.ModelSerializer):
                 {"detail": f"Thread with id {thread_id} does not exist."}
             )
 
-        if self.context.get("sender") not in thread.participants.all():
+        if self.context["request"].user not in thread.participants.all():
             raise serializers.ValidationError(
                 {"detail": "Sender must be a participant of the thread."}
             )
@@ -98,6 +98,6 @@ class ThreadMessageSerializer(serializers.ModelSerializer):
         validated_data["is_read"] = False
         thread_id = self.context.get("thread_id")
         thread = Thread.objects.filter(id=thread_id).first()
-        sender = self.context.get("sender")
+        sender = self.context["request"].user
         message = Message.objects.create(thread=thread, sender=sender, **validated_data)
         return message
