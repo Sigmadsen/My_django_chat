@@ -21,8 +21,11 @@ def custom_404(request, exception=None):
 class ThreadViewSet(viewsets.ModelViewSet):
     serializer_class = ThreadSerializer
 
+    # Same situation as in below class
     def get_queryset(self):
-        return Thread.objects.filter(participants=self.request.user)
+        return Thread.objects.prefetch_related("participants").filter(
+            participants=self.request.user
+        )
 
     def create(self, request, *args, **kwargs):
         # Override this method to return status code 200 instead of 201 in case the thread is existing
@@ -42,9 +45,12 @@ class ThreadViewSet(viewsets.ModelViewSet):
 class ThreadMessageViewSet(viewsets.ModelViewSet):
     serializer_class = ThreadMessageSerializer
 
+    # Use select_related because we use 'sender' field in serializer, and with simple filter() we will
+    # make additional request to get 'sender' (via UserSerializer) for each Message object
+    # and this will make N+1 requests quantity problem
     def get_queryset(self):
         thread_id = self.kwargs.get("thread_pk")
-        return Message.objects.filter(
+        return Message.objects.select_related("sender").filter(
             thread_id=thread_id, thread__participants=self.request.user
         )
 
