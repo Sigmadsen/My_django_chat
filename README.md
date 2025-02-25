@@ -55,6 +55,9 @@
 18. **Check Django admin customization**![Check Django admin customization](./docs/screenshots/step_18_check_django_admin_customization.png)
 19. **Check messages pagination page 1**![Check messages pagination page 1](./docs/screenshots/step_19_check_messages_pagination_page_1.png)
 20. **Check messages pagination page 2**![Check messages pagination page 2](./docs/screenshots/step_20_check_messages_pagination_page_2.png)
+21. **Check a restriction on API for marking a message as `read`**![Patch other fields](./docs/screenshots/step_21_try_to_patch_other_fields_via_api_for_marking_message_as_read.png)
+    - Send a `PATCH` request to `localhost:8000/api/threads/<put your thread_id here>/messages/<put your message_id here>/` with body `{"text":"some random text"}`
+22. **Check the restriction message**![Check the restriction message](./docs/screenshots/step_22_only_the_is_read_field_allowed_to_patch.png)
 
 ---
 

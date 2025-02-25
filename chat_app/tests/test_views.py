@@ -246,6 +246,26 @@ class ThreadMessageViewSetTest(TransactionTestCase):
         message.refresh_from_db()
         self.assertTrue(message.is_read)
 
+    def test_try_to_patch_other_fields_from_api_for_mark_thread_message_as_read(self):
+        message = Message.objects.create(
+            text="Test message123123123",
+            sender=self.user2,
+            thread=self.thread_between_1_and_2,
+        )
+        patch_url = reverse(
+            "messages", args=[self.thread_between_1_and_2.pk, message.pk]
+        )
+        response = self.client.patch(
+            patch_url, {"is_read": True, "text": "My new text", "sender": self.user3}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("detail", response.data)
+        self.assertIn(
+            "Only the 'is_read' field can be updated via PATCH.",
+            response.data["detail"],
+        )
+
     def test_mark_own_thread_message_as_read(self):
         message = Message.objects.create(
             text="Test message123123123",

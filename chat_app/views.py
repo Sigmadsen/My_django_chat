@@ -59,6 +59,15 @@ class ThreadMessageViewSet(viewsets.ModelViewSet):
         context["thread_id"] = self.kwargs.get("thread_pk")
         return context
 
+    def partial_update(self, request, *args, **kwargs):
+        if set(request.data.keys()) - {"is_read"}:
+            return Response(
+                {"detail": "Only the 'is_read' field can be updated via PATCH."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return super().partial_update(request, *args, **kwargs)
+
     @action(detail=True, methods=["get"])
     def unread_count(self, request, thread_pk=None):
         user = request.user
